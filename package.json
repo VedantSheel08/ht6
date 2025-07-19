@@ -23,5 +23,17 @@
     "eslint": "^9",
     "eslint-config-next": "15.4.2",
     "@eslint/eslintrc": "^3"
-  }
+  },
+  "description": "This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VedantSheel08/ht6.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/VedantSheel08/ht6/issues"
+  },
+  "homepage": "https://github.com/VedantSheel08/ht6#readme"
 }
