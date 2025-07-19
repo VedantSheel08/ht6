@@ -1,0 +1,1 @@
+Create a .env in /gemini with the Gemini api key. 
