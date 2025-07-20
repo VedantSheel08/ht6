@@ -303,15 +303,15 @@ export default function Home() {
             fontSize: "clamp(2rem, 6vw, 4rem)",
             marginBottom: "1rem",
             textShadow: "none",
-            animation: "rainbow 3s linear infinite",
+            color: "#ffff00",
             letterSpacing: "0.2em",
             cursor: "pointer",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.animation = "glitch 0.3s, rainbow 3s linear infinite";
+            e.currentTarget.style.animation = "glitch 0.3s";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.animation = "rainbow 3s linear infinite";
+            e.currentTarget.style.animation = "none";
           }}
         >
           intellidrive
@@ -326,7 +326,7 @@ export default function Home() {
             lineHeight: "1.8",
           }}
         >
-          Your LLM on wheels.
+          Control hardware with an LLM by just talking!
         </p>
         
         <div style={{ 
