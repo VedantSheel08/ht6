@@ -28,7 +28,7 @@ pwm2.start(0)
 
 # Speed settings
 slow_speed = 25
-fast_speed = 50
+fast_speed = 45
 
 def move_forward(duration=0.3):
     pwm.ChangeDutyCycle(slow_speed)

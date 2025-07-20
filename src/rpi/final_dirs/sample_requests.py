@@ -130,7 +130,7 @@ if __name__ == "__main__":
     print("=" * 50)
 
     # Test individual endpoints
-    test_individual_endpoints()
+    # test_individual_endpoints()
 
     print("\n" + "=" * 50)
     # print("Testing photo capture...")
@@ -138,4 +138,4 @@ if __name__ == "__main__":
 
     print("\n" + "=" * 50)
     print("Testing movement sequence...")
-    test_all_movements()
+    # test_all_movements()
