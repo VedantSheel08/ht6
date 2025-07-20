@@ -65,6 +65,25 @@ def test_stop():
     print("-" * 50)
 
 
+def test_photo():
+    """Test taking a photo"""
+    print("Testing photo capture...")
+    try:
+        response = requests.post(
+            f"{BASE_URL}/photo",
+            json={
+                "goal": "to find a keychain object on the ground and move towards it from the given objects in front",
+                "laptop_ip": "10.33.49.88",  # Replace with your laptop's IP
+                "laptop_port": 8000,
+            },
+        )
+        print(f"Status: {response.status_code}")
+        print(f"Response: {response.json()}")
+    except Exception as e:
+        print(f"Error: {e}")
+    print("-" * 50)
+
+
 def test_all_movements():
     """Test all movement commands in sequence"""
     print("Testing all movement commands...")
@@ -102,6 +121,7 @@ def test_individual_endpoints():
     test_left()
     test_right()
     test_stop()
+    test_photo()
 
 
 if __name__ == "__main__":
@@ -111,6 +131,10 @@ if __name__ == "__main__":
 
     # Test individual endpoints
     test_individual_endpoints()
+
+    print("\n" + "=" * 50)
+    # print("Testing photo capture...")
+    test_photo()
 
     print("\n" + "=" * 50)
     print("Testing movement sequence...")
