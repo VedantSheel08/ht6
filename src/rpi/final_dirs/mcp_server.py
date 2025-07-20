@@ -9,47 +9,35 @@ mcp = FastMCP("car-mcp")
 
 # Configuration
 BASE_URL = "http://10.33.35.1:5000"  # Flask server on QNX Pi
-DEFAULT_DURATION = 1.5  # Default movement duration in seconds (encouraged for most moves)
-MAX_DURATION = 3.0      # Max duration for bold moves
+DEFAULT_DURATION = 1.1  # Default movement duration in seconds (slightly slower)
+MAX_DURATION = 2.2      # Max duration for bold moves (reduced)
 MIN_DURATION = 0.5      # Minimum duration for any movement
 
-# System prompt for autonomous navigation (updated for less frequent camera usage)
+# System prompt for autonomous navigation (short, with camera retry logic)
 SYSTEM_PROMPT = """
-You are an autonomous RC car navigation system. Your goal is to find and reach specific objects or locations based on objectives.
+You are an autonomous RC car navigation system. Your goal is to find and reach specific objects or locations.
 
-## CAR CAPABILITIES:
 - Movement: Forward, backward, left, right (all with duration)
-- Sensing: Camera with photo capture and AI analysis
+- Camera: Take photos and analyze with AI
 
-## MOVEMENT:
-- All moves use a duration (0.2–3.0s). Default is 1.5s (recommended for most moves).
-- Use 0.2–0.4s for fine adjustments (e.g., a 0.4s turn ≈ 100° approx).
-- Use longer durations (up to 3.0s) to cover more ground or get right up to the object.
-- Prefer the default duration unless a shorter/longer move is clearly needed.
-- Car responds quickly but may drift slightly.
+## Movement
+- All moves use a duration (0.2–2.2s). Default is 1.1s (recommended).
+- Use 0.2–0.4s for small adjustments (0.4s turn ≈ 100°).
+- Use longer moves (up to 2.2s) to get close to the object.
+- Prefer default unless a shorter/longer move is clearly needed.
 
-## NAVIGATION STRATEGY:
-1. Take a photo every 2 or 3 moves to check your position. Only take a single photo if you are very unsure or cannot see the object at all.
-2. Use confident forward moves when the object is in view, even if not centered.
-3. If the object is visible but not centered, move forward (possibly with a slight turn) rather than just turning in place.
-4. Only use turns if the object is not visible or you need to reorient.
-5. Don't worry about being perfect—keep moving and adjust as you go.
-6. Avoid obstacles and use conservative moves if needed.
-7. **When searching for an object, DO NOT STOP UNTIL THE CAR IS VERY CLOSE!** Move forward until nearly touching the target.
+## Navigation
+- Take a photo every 2 or 3 moves to check your position.
+- Only take a single photo if you are very unsure or can't see the object.
+- If the object is visible, move forward (even if not centered).
+- Only turn if you can't see the object.
+- Don't stop until you are very close to the target.
 
-## PHOTO ANALYSIS:
-- Each photo provides visual feedback.
-- AI analysis helps determine the next move.
-- Use photos every 2 or 3 moves to maintain awareness and verify you are facing the objective.
-- Only take a single photo if you are very unsure or cannot see the object at all.
+## If photo/analysis is not available (e.g. Gemini output says image not available):
+- Do NOT move forward to scan.
+- Just try the camera again until you get a valid image.
 
-## DECISION MAKING:
-- Always consider the current objective.
-- Use visual feedback to make informed decisions.
-- Be patient and methodical, but keep making progress.
-- Adapt based on what you see in photos.
-
-Remember: You are controlling a real RC car. Prioritize safety, but don't worry about being perfect—just keep moving towards the goal and adjust as needed.
+Be safe, keep moving toward the goal, and retry the camera if needed.
 """
 
 def make_request(
@@ -68,11 +56,11 @@ def make_request(
 @mcp.tool()
 def move_forward(duration: float = DEFAULT_DURATION) -> Dict[str, Any]:
     """
-    Move the RC car forward for a specified duration (default 1.5s, up to 3s).
+    Move the RC car forward for a specified duration (default 1.1s, up to 2.2s).
     Prefer the default duration for most moves unless a shorter/longer move is clearly needed.
 
     Args:
-        duration: Movement duration in seconds (0.2–3.0, default 1.5)
+        duration: Movement duration in seconds (0.2–2.2, default 1.1)
 
     Returns:
         Dict with status and response from the car's movement system
@@ -94,10 +82,10 @@ def move_forward(duration: float = DEFAULT_DURATION) -> Dict[str, Any]:
 @mcp.tool()
 def move_backward(duration: float = DEFAULT_DURATION) -> Dict[str, Any]:
     """
-    Move the RC car backward for a specified duration (default 1.5s, up to 3s).
+    Move the RC car backward for a specified duration (default 1.1s, up to 2.2s).
 
     Args:
-        duration: Movement duration in seconds (0.2–3.0, default 1.5)
+        duration: Movement duration in seconds (0.2–2.2, default 1.1)
 
     Returns:
         Dict with status and response from the car's movement system
@@ -118,10 +106,10 @@ def move_backward(duration: float = DEFAULT_DURATION) -> Dict[str, Any]:
 @mcp.tool()
 def turn_left(duration: float = DEFAULT_DURATION) -> Dict[str, Any]:
     """
-    Turn the RC car left for a specified duration (default 1.5s, up to 3s).
+    Turn the RC car left for a specified duration (default 1.1s, up to 2.2s).
 
     Args:
-        duration: Turn duration in seconds (0.2–3.0, default 1.5)
+        duration: Turn duration in seconds (0.2–2.2, default 1.1)
 
     Returns:
         Dict with status and response from the car's movement system
@@ -143,10 +131,10 @@ def turn_left(duration: float = DEFAULT_DURATION) -> Dict[str, Any]:
 @mcp.tool()
 def turn_right(duration: float = DEFAULT_DURATION) -> Dict[str, Any]:
     """
-    Turn the RC car right for a specified duration (default 1.5s, up to 3s).
+    Turn the RC car right for a specified duration (default 1.1s, up to 2.2s).
 
     Args:
-        duration: Turn duration in seconds (0.2–3.0, default 1.5)
+        duration: Turn duration in seconds (0.2–2.2, default 1.1)
 
     Returns:
         Dict with status and response from the car's movement system
@@ -182,7 +170,7 @@ def get_navigation_system_prompt() -> Dict[str, Any]:
         "system_prompt": SYSTEM_PROMPT,
         "message": "Autonomous navigation system prompt retrieved",
         "key_points": {
-            "movement_duration_range": "0.2–3.0 seconds (default 1.5s, use default unless otherwise needed)",
+            "movement_duration_range": "0.2–2.2 seconds (default 1.1s, use default unless otherwise needed)",
             "safety_priority": "Be careful, but keep moving towards the goal.",
             "photo_frequency": "Take photos every 2 or 3 moves (rarely just 1, only if very unsure or can't see object)",
             "navigation_strategy": "Prefer forward movement when the object is visible, even if not centered. Only turn if you can't see the object. When locating an object, do NOT stop until the car is very close!",
@@ -194,6 +182,7 @@ def get_navigation_system_prompt() -> Dict[str, Any]:
                 "take_photo_and_analyze(goal_description)",
             ],
             "turn_context": "A turn of 0.4 seconds is about 100 degrees.",
+            "camera_retry": "If the image is not available, do not move forward to scan. Just try the camera again until you get a valid image.",
         },
     }
 
@@ -226,7 +215,6 @@ def take_photo_and_analyze(goal_description: str, frequency_hint: str = "normal"
             "goal": goal_description,
             "laptop_ip": "10.33.49.88",  # Laptop IP for processing
             "laptop_port": 8000,
-            "frequency_hint": frequency_hint,  # Inform downstream logic of intent
         }
         url = f"{BASE_URL}/photo"
         response = requests.post(
@@ -254,7 +242,7 @@ def take_photo_and_analyze(goal_description: str, frequency_hint: str = "normal"
             "status": "success",
             "message": "Photo taken and analyzed",
             "goal": goal_description,
-            "analysis_result": result.get("action", "No analysis available"),
+            "analysis_result": result.get("annotation", "No analysis available"),
             "full_response": result,
         }
     except requests.exceptions.RequestException as e:

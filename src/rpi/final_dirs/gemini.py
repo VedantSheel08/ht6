@@ -3,7 +3,7 @@ from google import genai
 
 client = genai.Client()
 
-with open('example_img.bmp', 'rb') as f:
+with open('received_screenshot.bmp', 'rb') as f:
     image_bytes = f.read()
 
 response = client.models.generate_content(
@@ -13,7 +13,7 @@ contents=[
     data=image_bytes,
     mime_type='image/jpeg',
     ),
-    'Describe this image in detail.'
+    'Describe this image in short.'
 ]
 )
 
