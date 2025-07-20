@@ -9,56 +9,48 @@ mcp = FastMCP("car-mcp")
 
 # Configuration
 BASE_URL = "http://10.33.35.1:5000"  # Flask server on QNX Pi
-DEFAULT_DURATION = 0.45  # Default movement duration in seconds (a bit longer for close approach)
-MAX_DURATION = 0.85      # Maximum safe duration (can touch the object)
-MIN_DURATION = 0.2       # Minimum duration for any movement
+DEFAULT_DURATION = 1.5  # Default movement duration in seconds (encouraged for most moves)
+MAX_DURATION = 3.0      # Max duration for bold moves
+MIN_DURATION = 0.5      # Minimum duration for any movement
 
-# System prompt for autonomous navigation
+# System prompt for autonomous navigation (updated for less frequent camera usage)
 SYSTEM_PROMPT = """
-You are an autonomous RC car navigation system. Your primary goal is to navigate the car to find and reach specific objects or locations based on given objectives.
+You are an autonomous RC car navigation system. Your goal is to find and reach specific objects or locations based on objectives.
 
 ## CAR CAPABILITIES:
-- Movement: Forward, backward, left turn, right turn
+- Movement: Forward, backward, left, right (all with duration)
 - Sensing: Camera with photo capture and AI analysis
-- Navigation: Autonomous decision-making based on visual feedback
 
-## MOVEMENT CHARACTERISTICS:
-- All movements use a duration parameter (0.2-0.85 seconds)
-- Default duration is 0.45 seconds for most movements (can touch the object)
-- Use short durations (0.2-0.4s) for fine adjustments, longer (up to 0.85s) to get right up to the object
-- Never use durations longer than 0.85 seconds
-- Car responds quickly but may drift slightly
+## MOVEMENT:
+- All moves use a duration (0.2–3.0s). Default is 1.5s (recommended for most moves).
+- Use 0.2–0.4s for fine adjustments (e.g., a 0.4s turn ≈ 100° approx).
+- Use longer durations (up to 3.0s) to cover more ground or get right up to the object.
+- Prefer the default duration unless a shorter/longer move is clearly needed.
+- Car responds quickly but may drift slightly.
 
 ## NAVIGATION STRATEGY:
-1. Always take a photo before and after every move to verify position and orientation towards the objective.
-2. Use short, controlled movements to get as close as possible to the target (even touching it is OK).
-3. Analyze each photo to determine the next action.
-4. Keep the objective in mind with every decision.
-5. Avoid obstacles and use conservative movements when needed.
-
-## MOVEMENT GUIDELINES:
-- Forward: Use to approach targets. Get as close as possible, right before or even touching the object before stopping.
-- Backward: Use for backing away or repositioning.
-- Left/Right Turns: Use for changing direction or aligning with targets.
-- Fine Adjustments: Use 0.2-0.4s durations for precise positioning.
-- Search Patterns: Use systematic turns when target is not visible.
+1. Take a photo every 2 or 3 moves to check your position. Only take a single photo if you are very unsure or cannot see the object at all.
+2. Use confident forward moves when the object is in view, even if not centered.
+3. If the object is visible but not centered, move forward (possibly with a slight turn) rather than just turning in place.
+4. Only use turns if the object is not visible or you need to reorient.
+5. Don't worry about being perfect—keep moving and adjust as you go.
+6. Avoid obstacles and use conservative moves if needed.
+7. **When searching for an object, DO NOT STOP UNTIL THE CAR IS VERY CLOSE!** Move forward until nearly touching the target.
 
 ## PHOTO ANALYSIS:
-- Each photo provides visual feedback about current position.
-- AI analysis helps determine optimal next movement.
-- Use photos frequently to maintain situational awareness and verify you are facing the objective.
-- Photos help identify obstacles, targets, and navigation cues.
+- Each photo provides visual feedback.
+- AI analysis helps determine the next move.
+- Use photos every 2 or 3 moves to maintain awareness and verify you are facing the objective.
+- Only take a single photo if you are very unsure or cannot see the object at all.
 
-## AUTONOMOUS DECISION MAKING:
+## DECISION MAKING:
 - Always consider the current objective.
 - Use visual feedback to make informed decisions.
-- Be patient and methodical in navigation.
-- Adapt strategy based on what you see in photos.
-- Maintain awareness of car's position relative to goal.
+- Be patient and methodical, but keep making progress.
+- Adapt based on what you see in photos.
 
-Remember: You are controlling a physical RC car. Be careful, methodical, and always prioritize safety while working toward the objective. TAKE A PHOTO TO VERIFY YOU ARE FACING THE OBJECTIVE BEFORE MOVING FORWARD, AND AFTER EVERY SINGLE MOVE. THIS IS VERY IMPORTANT.
+Remember: You are controlling a real RC car. Prioritize safety, but don't worry about being perfect—just keep moving towards the goal and adjust as needed.
 """
-
 
 def make_request(
     endpoint: str, method: str = "POST", json_data: Optional[dict] = None
@@ -76,25 +68,24 @@ def make_request(
 @mcp.tool()
 def move_forward(duration: float = DEFAULT_DURATION) -> Dict[str, Any]:
     """
-    Move the RC car forward for the specified duration.
-    The car should get as close as possible to the object before stopping (it can even touch it).
+    Move the RC car forward for a specified duration (default 1.5s, up to 3s).
+    Prefer the default duration for most moves unless a shorter/longer move is clearly needed.
 
     Args:
-        duration: Movement duration in seconds (0.2-0.85, default 0.45)
+        duration: Movement duration in seconds (0.2–3.0, default 1.5)
 
     Returns:
         Dict with status and response from the car's movement system
 
     Notes:
-        - Use longer durations (up to 0.85s) to get right up to the object, but never overshoot.
-        - The car should stop right before or touching the object, not far away.
-        - The car moves quickly.
+        - Prefer moving forward whenever the object is visible, even if not perfectly centered.
+        - When locating an object, do NOT stop until the car is very close!
     """
     duration = max(MIN_DURATION, min(duration, MAX_DURATION))
     result = make_request("forward", method="POST", json_data={"duration": duration})
     return {
         "status": "success",
-        "message": f"Moved forward for {duration} seconds (as close as possible to the object).",
+        "message": f"Moved forward for {duration} seconds (confidently approaching the object).",
         "duration_used": duration,
         "result": result,
     }
@@ -103,18 +94,16 @@ def move_forward(duration: float = DEFAULT_DURATION) -> Dict[str, Any]:
 @mcp.tool()
 def move_backward(duration: float = DEFAULT_DURATION) -> Dict[str, Any]:
     """
-    Move the RC car backward for the specified duration.
+    Move the RC car backward for a specified duration (default 1.5s, up to 3s).
 
     Args:
-        duration: Movement duration in seconds (0.2-0.85, default 0.45)
+        duration: Movement duration in seconds (0.2–3.0, default 1.5)
 
     Returns:
         Dict with status and response from the car's movement system
 
     Notes:
         - Use to back away from obstacles or reposition.
-        - Use shorter durations for precise backing up.
-        - The car moves quickly.
     """
     duration = max(MIN_DURATION, min(duration, MAX_DURATION))
     result = make_request("backward", method="POST", json_data={"duration": duration})
@@ -129,18 +118,17 @@ def move_backward(duration: float = DEFAULT_DURATION) -> Dict[str, Any]:
 @mcp.tool()
 def turn_left(duration: float = DEFAULT_DURATION) -> Dict[str, Any]:
     """
-    Turn the RC car left for the specified duration.
+    Turn the RC car left for a specified duration (default 1.5s, up to 3s).
 
     Args:
-        duration: Turn duration in seconds (0.2-0.85, default 0.45)
+        duration: Turn duration in seconds (0.2–3.0, default 1.5)
 
     Returns:
         Dict with status and response from the car's movement system
 
     Notes:
-        - Use for changing direction or aligning with targets.
-        - Shorter durations for fine adjustments, longer for wider turns.
-        - The car moves quickly.
+        - Use for changing direction or aligning with targets, but prefer forward movement if the object is visible.
+        - For context, a turn of 0.4s is about 100 degrees.
     """
     duration = max(MIN_DURATION, min(duration, MAX_DURATION))
     result = make_request("left", method="POST", json_data={"duration": duration})
@@ -155,18 +143,17 @@ def turn_left(duration: float = DEFAULT_DURATION) -> Dict[str, Any]:
 @mcp.tool()
 def turn_right(duration: float = DEFAULT_DURATION) -> Dict[str, Any]:
     """
-    Turn the RC car right for the specified duration.
+    Turn the RC car right for a specified duration (default 1.5s, up to 3s).
 
     Args:
-        duration: Turn duration in seconds (0.2-0.85, default 0.45)
+        duration: Turn duration in seconds (0.2–3.0, default 1.5)
 
     Returns:
         Dict with status and response from the car's movement system
 
     Notes:
-        - Use for changing direction or aligning with targets.
-        - Shorter durations for fine adjustments, longer for wider turns.
-        - The car moves quickly.
+        - Use for changing direction or aligning with targets, but prefer forward movement if the object is visible.
+        - For context, a turn of 0.4s is about 100 degrees.
     """
     duration = max(MIN_DURATION, min(duration, MAX_DURATION))
     result = make_request("right", method="POST", json_data={"duration": duration})
@@ -183,24 +170,22 @@ def get_navigation_system_prompt() -> Dict[str, Any]:
     """
     Get the autonomous navigation system prompt and guidelines.
     Call this at the beginning of any navigation task to understand the system capabilities and strategy.
-    DO NOT CALL IT AGAIN AFTER STARTING THE NAVIGATION TASK.
 
     Returns:
         Dict with the complete navigation system prompt and guidelines
 
     Notes:
         - Provides guidance for autonomous RC car navigation.
-        - Includes movement characteristics, safety guidelines, and navigation strategy.
     """
     return {
         "status": "success",
         "system_prompt": SYSTEM_PROMPT,
         "message": "Autonomous navigation system prompt retrieved",
         "key_points": {
-            "movement_duration_range": "0.2-0.85 seconds (default 0.45s)",
-            "safety_priority": "Always use conservative movements",
-            "photo_frequency": "Take photos before and after every move",
-            "navigation_strategy": "Continuous assessment with incremental movements",
+            "movement_duration_range": "0.2–3.0 seconds (default 1.5s, use default unless otherwise needed)",
+            "safety_priority": "Be careful, but keep moving towards the goal.",
+            "photo_frequency": "Take photos every 2 or 3 moves (rarely just 1, only if very unsure or can't see object)",
+            "navigation_strategy": "Prefer forward movement when the object is visible, even if not centered. Only turn if you can't see the object. When locating an object, do NOT stop until the car is very close!",
             "available_tools": [
                 "move_forward(duration)",
                 "move_backward(duration)",
@@ -208,18 +193,21 @@ def get_navigation_system_prompt() -> Dict[str, Any]:
                 "turn_right(duration)",
                 "take_photo_and_analyze(goal_description)",
             ],
+            "turn_context": "A turn of 0.4 seconds is about 100 degrees.",
         },
     }
 
 
 @mcp.tool()
-def take_photo_and_analyze(goal_description: str) -> Dict[str, Any]:
+def take_photo_and_analyze(goal_description: str, frequency_hint: str = "normal") -> Dict[str, Any]:
     """
-    Take a photo with the car's camera and analyze it for navigation purposes.
-    Use this before and after every move to verify the car's position and orientation towards the goal.
+    Take a photo with the car's camera and analyze it for navigation.
+    Use this every 2 or 3 moves to verify the car's position and orientation.
+    Only use after a single move if you are very unsure or cannot see the object at all.
 
     Args:
         goal_description: Description of what the car is trying to find or achieve.
+        frequency_hint: "normal" (default, for every 2-3 moves), or "urgent" (use after a single move if very unsure/can't see object)
 
     Returns:
         Dict with photo analysis results and recommended next actions
@@ -227,18 +215,23 @@ def take_photo_and_analyze(goal_description: str) -> Dict[str, Any]:
     Notes:
         - Captures current view from car's camera
         - AI analyzes the image based on the goal description
-        - Returns specific action recommendations (MOVE_LEFT, MOVE_RIGHT, etc.)
-        - Use frequently to maintain situational awareness and verify you are facing the objective
+        - Returns specific action recommendations (MOVE_LEFT, MOVE_RIGHT, MOVE_FORWARD, etc.)
+        - Use every 2 or 3 moves to maintain situational awareness and verify you are facing the objective
+        - Only use after a single move if you are very unsure or cannot see the object at all
+        - If the object is visible, prefer moving forward, even if not perfectly centered.
+        - When locating an object, do NOT stop until the car is very close!
     """
     try:
         payload = {
             "goal": goal_description,
             "laptop_ip": "10.33.49.88",  # Laptop IP for processing
             "laptop_port": 8000,
+            "frequency_hint": frequency_hint,  # Inform downstream logic of intent
         }
         url = f"{BASE_URL}/photo"
-        response = requests.post(url, json=payload, timeout=7)
-        # Do NOT call raise_for_status() here, because the /photo endpoint may return a non-2xx status with a valid JSON error message
+        response = requests.post(
+            url, json=payload, timeout=30
+        )  # Increased timeout for photo processing
         try:
             result = response.json()
         except Exception as json_err:
@@ -250,7 +243,6 @@ def take_photo_and_analyze(goal_description: str) -> Dict[str, Any]:
                 "raw_response": response.text,
             }
         if response.status_code >= 400:
-            # The endpoint returned an error, but with a JSON body
             return {
                 "status": "error",
                 "message": f"Photo endpoint returned error: {result.get('message', 'Unknown error')}",

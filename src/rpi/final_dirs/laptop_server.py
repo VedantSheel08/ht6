@@ -89,12 +89,12 @@ def receive_image():
         print(f"Received image: {image_file.filename}")
         print(f"Goal description: {goal_description}")
 
+        image_file.save("received_screenshot.bmp")
         # Process the image with Gemini
         gemini_response = process_image_with_gemini(image_file, goal_description)
 
         # Save the image locally for debugging (optional)
         image_file.seek(0)  # Reset file pointer
-        image_file.save("received_screenshot.bmp")
 
         return gemini_response, 200
 

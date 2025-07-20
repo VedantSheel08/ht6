@@ -30,6 +30,7 @@ pwm2.start(0)
 slow_speed = 25
 fast_speed = 45
 
+
 def move_forward(duration=0.3):
     pwm.ChangeDutyCycle(slow_speed)
     pwm2.ChangeDutyCycle(slow_speed)
@@ -98,17 +99,38 @@ def take_photo():
         )
 
         # Give the camera app time to start up
-        time.sleep(3)
+        time.sleep(5)  # QNX needs more time for framebuffer setup
 
         # Take screenshot using the screenshot command
         print("Taking screenshot...")
         screenshot_result = subprocess.run(
-            ["screenshot"], capture_output=True, text=True
+            ["screenshot"], capture_output=True, text=True, timeout=10
         )
+
+        # After taking the screenshot, terminate the camera application
+        if camera_process.poll() is None:
+            print("Closing camera application...")
+            camera_process.terminate()
+            try:
+                camera_process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                print("Camera app did not close in time, killing...")
+                camera_process.kill()
 
         if screenshot_result.returncode == 0:
             print("Photo taken successfully!")
-            return True
+            time.sleep(2)
+            # After taking screenshot, verify file exists and has content:
+            if os.path.exists("screenshot.bmp"):
+                file_size = os.path.getsize("screenshot.bmp")
+                if file_size > 1000:  # Basic content check
+                    return True
+                else:
+                    print("Screenshot file is too small, may be invalid")
+                    return False
+            else:
+                print("Screenshot file not found after taking photo.")
+                return False
         else:
             print(f"Screenshot failed: {screenshot_result.stderr}")
             return False
@@ -160,7 +182,9 @@ def forward():
     data = request.get_json(silent=True) or {}
     duration = float(data.get("duration", 0.3))
     move_forward(duration)
-    return jsonify({"status": "success", "message": f"Moved forward for {duration} seconds"})
+    return jsonify(
+        {"status": "success", "message": f"Moved forward for {duration} seconds"}
+    )
 
 
 @app.route("/backward", methods=["POST"])
@@ -168,7 +192,9 @@ def backward():
     data = request.get_json(silent=True) or {}
     duration = float(data.get("duration", 0.3))
     move_backward(duration)
-    return jsonify({"status": "success", "message": f"Moved backward for {duration} seconds"})
+    return jsonify(
+        {"status": "success", "message": f"Moved backward for {duration} seconds"}
+    )
 
 
 @app.route("/left", methods=["POST"])
@@ -176,7 +202,9 @@ def left():
     data = request.get_json(silent=True) or {}
     duration = float(data.get("duration", 0.3))
     move_left(duration)
-    return jsonify({"status": "success", "message": f"Turned left for {duration} seconds"})
+    return jsonify(
+        {"status": "success", "message": f"Turned left for {duration} seconds"}
+    )
 
 
 @app.route("/right", methods=["POST"])
@@ -184,7 +212,9 @@ def right():
     data = request.get_json(silent=True) or {}
     duration = float(data.get("duration", 0.3))
     move_right(duration)
-    return jsonify({"status": "success", "message": f"Turned right for {duration} seconds"})
+    return jsonify(
+        {"status": "success", "message": f"Turned right for {duration} seconds"}
+    )
 
 
 @app.route("/stop", methods=["POST"])
@@ -240,10 +270,10 @@ def photo():
 if __name__ == "__main__":
     print("Starting Motor Control Flask Server...")
     print("Available endpoints:")
-    print("  POST /forward  - Move forward (optional JSON: {\"duration\": seconds})")
-    print("  POST /backward - Move backward (optional JSON: {\"duration\": seconds})")
-    print("  POST /left     - Turn left (optional JSON: {\"duration\": seconds})")
-    print("  POST /right    - Turn right (optional JSON: {\"duration\": seconds})")
+    print('  POST /forward  - Move forward (optional JSON: {"duration": seconds})')
+    print('  POST /backward - Move backward (optional JSON: {"duration": seconds})')
+    print('  POST /left     - Turn left (optional JSON: {"duration": seconds})')
+    print('  POST /right    - Turn right (optional JSON: {"duration": seconds})')
     print("  POST /stop     - Stop motors")
     print("  POST /photo    - Take a photo and send to laptop")
     print("\nServer running on http://0.0.0.0:5000")
