@@ -1,5 +1,7 @@
 import rpi_gpio as GPIO
 import time
+import subprocess
+import os
 
 IN1, IN2, ENA = 17, 27, 22
 IN3, IN4, ENB = 23, 24, 25
@@ -12,8 +14,8 @@ GPIO.setup(IN4, GPIO.OUT)
 GPIO.setup(ENA, GPIO.OUT)
 GPIO.setup(ENB, GPIO.OUT)
 
-pwm = GPIO.PWM(ENA, 100) # right motors
-pwm2 = GPIO.PWM(ENB, 100) # left motors
+pwm = GPIO.PWM(ENA, 100)  # right motors
+pwm2 = GPIO.PWM(ENB, 100)  # left motors
 pwm.start(0)
 pwm2.start(0)
 
@@ -42,6 +44,7 @@ def move_backward(t):
     time.sleep(t)
     stop_motor()
 
+
 def move_right(t):
     pwm2.ChangeDutyCycle(fast_speed)
     GPIO.output(IN3, GPIO.LOW)
@@ -53,6 +56,7 @@ def move_right(t):
 
     time.sleep(t)
     stop_motor()
+
 
 def move_left(t):
     pwm2.ChangeDutyCycle(fast_speed)
@@ -66,6 +70,7 @@ def move_left(t):
     time.sleep(t)
     stop_motor()
 
+
 def stop_motor():
     pwm.ChangeDutyCycle(0)
     pwm2.ChangeDutyCycle(0)
@@ -75,12 +80,52 @@ def stop_motor():
     GPIO.output(IN4, GPIO.LOW)
 
 
-move_forward(1)
-time.sleep(1)
-move_right(0.25)
-time.sleep(1)
-move_backward(1)
-time.sleep(1)
-move_left(0.25)
-time.sleep(1)
+def take_photo():
+    """
+    Take a photo using the camera_example3_viewfinder application
+    Opens the camera app and takes a screenshot
+    """
+    try:
+        # Open the camera application
+        print("Opening camera application...")
+        camera_process = subprocess.Popen(
+            ["camera_example3_viewfinder"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
 
+        # Give the camera app time to start up
+        time.sleep(3)
+
+        # Take screenshot using the screenshot command
+        print("Taking screenshot...")
+        screenshot_result = subprocess.run(
+            ["screenshot"], capture_output=True, text=True
+        )
+
+        if screenshot_result.returncode == 0:
+            print("Photo taken successfully!")
+            return True
+        else:
+            print(f"Screenshot failed: {screenshot_result.stderr}")
+            return False
+
+    except Exception as e:
+        print(f"Error taking photo: {e}")
+        return False
+
+
+# Test the photo function
+if __name__ == "__main__":
+    print("Testing photo capture...")
+    take_photo()
+
+    # Original motor test
+    # move_forward(1)
+    # time.sleep(1)
+    # move_right(0.25)
+    # time.sleep(1)
+    # move_backward(1)
+    # time.sleep(1)
+    # move_left(0.25)
+    # time.sleep(1)
